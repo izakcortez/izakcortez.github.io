@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Memory Test</title>
+    <style>
+        :root {
+            --bg-color: #2b394a;
+            --tile-default: #435b75;
+            --tile-active: #ffffff;
+            --tile-correct: #ffffff;
+            --tile-wrong: #fb4e4e;
+            --text-color: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .header { text-align: center; margin-bottom: 20px; }
+        .stats { font-size: 1.5rem; margin-bottom: 10px; }
+
+        .grid {
+            display: grid;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .tile {
+            width: 80px;
+            height: 80px;
+            background-color: var(--tile-default);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.15s ease, transform 0.1s ease;
+        }
+
+        .tile:active { transform: scale(0.95); }
+        .tile.active { background-color: var(--tile-active); }
+        .tile.wrong { background-color: var(--tile-wrong); animation: shake 0.3s; }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            background: #ffd154;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #2b394a;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="stats">Level: <span id="level">1</span> | Lives: <span id="lives">3</span></div>
+    </div>
+
+    <div id="grid" class="grid"></div>
+    <div id="controls" style="margin-top: 20px;">
+        <button id="start-btn">Start Test</button>
+    </div>
+
+    <script>
+        const gridElement = document.getElementById('grid');
+        const startBtn = document.getElementById('start-btn');
+        const levelDisplay = document.getElementById('level');
+        const livesDisplay = document.getElementById('lives');
+
+        let level = 1;
+        let lives = 3;
+        let gridSize = 3;
+        let pattern = [];
+        let userSelection = [];
+        let isAcceptingInput = false;
+
+        function initGrid() {
+            gridElement.innerHTML = '';
+            // Grid size increases every few levels (3x3, 4x4, 5x5...)
+            gridSize = Math.floor(level / 3) + 3; 
+            gridElement.style.gridTemplateColumns = `repeat(${gridSize}, 80px)`;
+
+            for (let i = 0; i < gridSize * gridSize; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.dataset.index = i;
+                tile.addEventListener('click', () => handleTileClick(i, tile));
+                gridElement.appendChild(tile);
+            }
+        }
+
+        function generatePattern() {
+            pattern = [];
+            const tileCount = gridSize * gridSize;
+            const patternSize = level + 2; // Pattern gets longer each level
+
+            while (pattern.length < patternSize) {
+                const rand = Math.floor(Math.random() * tileCount);
+                if (!pattern.includes(rand)) pattern.push(rand);
+            }
+        }
+
+        function showPattern() {
+            isAcceptingInput = false;
+            const tiles = document.querySelectorAll('.tile');
+            
+            // Highlight the pattern
+            pattern.forEach(index => tiles[index].classList.add('active'));
+
+            // Hide after 1.2 seconds
+            setTimeout(() => {
+                tiles.forEach(t => t.classList.remove('active'));
+                isAcceptingInput = true;
+            }, 1200);
+        }
+
+        function handleTileClick(index, tile) {
+            if (!isAcceptingInput || userSelection.includes(index)) return;
+
+            if (pattern.includes(index)) {
+                tile.classList.add('active');
+                userSelection.push(index);
+
+                if (userSelection.length === pattern.length) {
+                    isAcceptingInput = false;
+                    level++;
+                    levelDisplay.innerText = level;
+                    setTimeout(nextLevel, 500);
+                }
+            } else {
+                isAcceptingInput = false;
+                tile.classList.add('wrong');
+                lives--;
+                livesDisplay.innerText = lives;
+
+                if (lives <= 0) {
+                    alert(`Game Over! You reached Level ${level}`);
+                    resetGame();
+                } else {
+                    setTimeout(nextLevel, 800);
+                }
+            }
+        }
+
+        function nextLevel() {
+            userSelection = [];
+            initGrid();
+            generatePattern();
+            showPattern();
+        }
+
+        function resetGame() {
+            level = 1;
+            lives = 3;
+            levelDisplay.innerText = level;
+            livesDisplay.innerText = lives;
+            startBtn.style.display = 'block';
+            gridElement.innerHTML = '';
+        }
+
+        startBtn.addEventListener('click', () => {
+            startBtn.style.display = 'none';
+            nextLevel();
+        });
+
+        // Initialize empty view
+        gridElement.style.gridTemplateColumns = `repeat(3, 80px)`;
+        for(let i=0; i<9; i++) {
+            const t = document.createElement('div');
+            t.className = 'tile';
+            gridElement.appendChild(t);
+        }
+    </script>
+</body>
+</html>
